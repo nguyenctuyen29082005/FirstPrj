@@ -1,0 +1,225 @@
+//@Override
+//public Doctor findDoctorById(String doctorId) {
+//    String cypher = """
+//                MATCH (d:Doctor)
+//                WHERE d.doctor_id = $doctorId
+//                RETURN d
+//                """;
+//    Map<String, Object> params = Map.of("doctorId", doctorId);
+//
+//    try (Session session = ConnectDB.getSession()) {
+//        return session.executeRead(tx -> {
+//            Result result = tx.run(cypher, params);
+//            if (result.hasNext()) {
+//                Node node = result.next().get("d").asNode();
+//                return Doctor.builder()
+//                        .speciality(node.get("speciality").asString())
+//                        .doctorId(node.get("doctor_id").asString())
+//                        .phone(node.get("phone").asString())
+//                        .name(node.get("name").asString())
+//                        .departmentId(node.get("dept_id").asString())
+//                        .build();
+//            }
+//            return null;
+//        });
+//    }
+//}
+//
+//@Override
+//public Map<String, Long> getNoOfDoctorBySpeciality(String departmentName) {
+//    String cypher = """
+//                MATCH (d:Doctor)-[:BELONG_TO]->(dp:Department)
+//                WHERE dp.name = $departmentName
+//                RETURN d.speciality as speciality, count(d) as totalDoctor
+//                """;
+//    Map<String, Object> params = Map.of("departmentName", departmentName);
+//
+//    try (Session session = ConnectDB.getSession()) {
+//        return session.executeRead(tx -> {
+//            Result result = tx.run(cypher, params);
+//            return result.stream()
+//                    .collect(Collectors.toMap(
+//                            r -> r.get("speciality").asString(),
+//                            r -> r.get("totalDoctor").asLong()
+//                    ));
+//        });
+//    }
+//}
+//
+//@Override
+//public boolean addDoctor(Doctor doctor) {
+//    String cypher = """
+//                CREATE (d:Doctor)
+//                SET d.doctor_id = $doctorId,
+//                    d.name = $name,
+//                    d.phone = $phone,
+//                    d.dept_id = $departmentId,
+//                    d.speciality = $speciality
+//                """;
+//
+//    Map<String, Object> params = Map.of(
+//            "doctorId", doctor.getDoctorId(),
+//            "name", doctor.getName(),
+//            "phone", doctor.getPhone(),
+//            "departmentId", doctor.getDepartmentId(),
+//            "speciality", doctor.getSpeciality()
+//    );
+//
+//    try (Session session = ConnectDB.getSession()) {
+//        return session.executeWrite(tx -> {
+//            ResultSummary summary = tx.run(cypher, params).consume();
+//            return summary.counters().nodesCreated() > 0;
+//        });
+//    }
+//}
+//
+//@Override
+//public List<Doctor> listDoctorBySpeciality(String keyword) {
+//    String cypher = """
+//                CALL db.index.fulltext.queryNodes("specialityFTI", $keyword) YIELD node
+//                RETURN node
+//                """;
+//
+//    Map<String, Object> params = Map.of(
+//            "keyword", keyword
+//    );
+//
+//    try (Session session = ConnectDB.getSession()) {
+//        return session.executeRead(tx -> {
+//            Result result = tx.run(cypher, params);
+//            return result
+//                    .stream()
+//                    .map(r -> {
+//                        Node node = r.get("node").asNode();
+//                        return Doctor.builder()
+//                                .doctorId(node.get("doctor_id").asString())
+//                                .name(node.get("name").asString())
+//                                .phone(node.get("phone").asString())
+//                                .speciality(node.get("speciality").asString())
+//                                .departmentId(node.get("dept_id").asString())
+//                                .build();
+//                    }).toList();
+//        });
+//    }
+//}
+//
+//@Override
+//public boolean updateDiagnosis(String doctorId, String patientId, String newDiagnosis) {
+//    String cypher = """
+//                MATCH (d:Doctor) <- [r:BE_TREATED] - (p:Patient)
+//                WHERE d.doctor_id = $doctorId AND p.patient_id = $patientId AND r.endDate is null
+//                SET r.diagnosis = $newDiagnosis
+//                """;
+//    Map<String, Object> params = Map.of(
+//            "doctorId", doctorId,
+//            "patientId", patientId,
+//            "newDiagnosis", newDiagnosis
+//    );
+//
+//    try (Session session = ConnectDB.getSession()) {
+//        return session.executeWrite(tx -> {
+//            ResultSummary resultSummary = tx.run(cypher, params).consume();
+//            return resultSummary.counters().propertiesSet() > 0;
+//        });
+//    }
+//}
+//
+//
+//
+//public class JacksonDataMapper implements GenericDataMapper {
+//
+//    private ObjectMapper objectMapper;
+//
+//    public JacksonDataMapper(ObjectMapper objectMapper) {
+//        this.objectMapper = objectMapper;
+//    }
+//
+//    @Override
+//    public Map<String, Object> toMap(Object object) {
+//        if (object == null) {
+//            return null;
+//        }
+//        return objectMapper.convertValue(object, Map.class);
+//    }
+//
+//    @Override
+//    public <T> T toObject(Map<String, Object> data, Class<T> clazz) {
+//        if (data == null) {
+//            return null;
+//        }
+//        return objectMapper.convertValue(data, clazz);
+//    }
+//}
+//
+//service
+//@Override
+//public boolean addDoctor(CreateDoctorDTO createDoctorDTO) {
+//    if (createDoctorDTO.getName() == null || createDoctorDTO.getDoctorId() == null) {
+//        throw new IllegalArgumentException("Name va id ko dc trong");
+//    }
+//    Doctor doctor = mapper.toObject(mapper.toMap(createDoctorDTO), Doctor.class);
+//
+//    return doctorRepository.addDoctor(doctor);
+//}
+//
+//
+//public static void main(String[] args) {
+//
+//    DoctorRepository doctorRepository = new DoctorRepositoryImpl();
+//    JacksonDataMapper mapper = new JacksonDataMapper(new ObjectMapper());
+//
+//    DoctorService doctorService = new iuh.fit.service.impl.DoctorServiceImpl(doctorRepository, mapper);
+//
+//    try {
+//        System.out.println("TIM DOCTOR THEO ID");
+//        String doctorId = "DR.017";
+//        Doctor doctor = doctorService.findDoctorById(doctorId);
+//        if (doctor != null) {
+//            System.out.println("KET QUA: " + doctor);
+//        } else {
+//            System.out.println("KO TIM THAY");
+//        }
+//
+//
+//        System.out.println("THONG KE SO BAC SI THEO TUNG CHUYEN KHOA CUA MOT KHOA");
+//        String departmentName = "Internal Medicine";
+//        Map<String, Long> result = doctorService.getNoOfDoctorBySpeciality(departmentName);
+//        if (result.isEmpty()) {
+//            System.out.println("KO CO DU LIEU CHO KHOA NAY");
+//        } else {
+//            System.out.println("THONG KE: ");
+//            result.forEach((k, v) -> {
+//                System.out.println(k + ":" + v);
+//            });
+//        }
+//
+//        System.out.println("THEM DOCTOR MOI");
+//        CreateDoctorDTO newDoctor = CreateDoctorDTO
+//                .builder()
+//                .doctorId("DR.099")
+//                .name("AHIHI")
+//                .phone("09876543322")
+//                .departmentId("DP.099")
+//                .speciality("HIHI")
+//                .build();
+//
+//        doctorService.addDoctor(newDoctor);
+//        System.out.println("--- THEM DOCTOR THANH CONG! ---");
+//        System.out.println(newDoctor);
+//
+//        System.out.println("SEARCH KEY WORD");
+//        String keyword = "Dermatology";
+//        List<Doctor> doctors = doctorService.listDoctorBySpeciality(keyword);
+//        doctors.forEach(System.out::println);
+//
+//        System.out.println("UPDATE DIAGNOSIS");
+//        String doctorIds = "DR.005";
+//        String patientId = "PT007";
+//        String newDiagnosis = "OK hihi";
+//        doctorService.updateDiagnosis(doctorIds, patientId, newDiagnosis);
+//        System.out.println("--- CAP NHAT THANH CONG! ---");
+//        System.out.println(newDiagnosis);
+//    } catch (Exception e) {
+//        e.printStackTrace();
+//    }
+//}
